@@ -1,0 +1,84 @@
+# SchoolFinder SI — prototype
+
+A searchable directory and interactive map of schools across Solomon Islands.
+
+> ## ⚠️ All school data in this project is fictional
+> Every one of the 31 school records in `js/data/schools.js` — names, contact
+> details, fees, subjects, coordinates and verification dates — is invented for
+> demonstration purposes. Place names, provinces and approximate coordinates are
+> real so the map looks plausible, but **no record corresponds to a real school**.
+> This is a concept prototype, not a public information service.
+
+---
+
+## Running it
+
+There is no build step, no bundler and no server-side code.
+
+- **GitHub Pages:** push the repository and enable Pages on the branch root. It
+  works as-is. All paths are relative.
+- **Locally:** open `index.html` directly in a browser, or serve the folder
+  (`python3 -m http.server`). A local server is recommended, because browser
+  geolocation only works on `https://` or `localhost`.
+
+External dependencies are loaded from CDNs at runtime: Leaflet 1.9.4 and two
+Google fonts (Inter, Source Serif 4). Nothing is installed.
+
+## Structure
+
+```
+index.html              app shell / markup
+css/styles.css          all styling (single stylesheet, CSS custom properties)
+js/data/schools.js      MOCK dataset + filter vocabularies (province, subject taxonomy…)
+js/state.js             the single app-state object, setters and subscribers
+js/filters.js           search, filtering, sorting, facet counts — pure functions
+js/geolocation.js       geolocation request + haversine distance
+js/filterPanel.js       renders and syncs the filter controls
+js/list.js              result cards + shared formatting helpers
+js/map.js               Leaflet init, markers, marker → selection
+js/panel.js             selected-school detail panel / mobile bottom sheet
+js/main.js              wiring: events → state → single render pass
+```
+
+Scripts are plain `<script>` tags sharing one global namespace (`SF`) rather
+than ES modules, so the app also runs from `file://` without a server.
+
+## How it works
+
+One state object, one render pass, two views:
+
+```
+event → SF.setState(patch) → subscribers → render(state)
+                                             ├── SF.filters.getResults(state)
+                                             ├── SF.list.render(results, state)
+                                             ├── SF.map.render(results, state)
+                                             ├── SF.panel.render(state)
+                                             └── SF.filterPanel.sync(state)
+```
+
+The list and the map are handed the *same* filtered array, so they cannot
+disagree. Selecting a school — from a card or from a marker — is the same
+`SF.select(id)` call.
+
+Filter semantics: filter types combine with AND; multiple values within one
+type combine with OR, except **subjects**, which is AND ("must teach all of
+these"). Option counts beside each filter are live facet counts.
+
+## Swapping the mock data for an API
+
+`js/data/schools.js` is the only file that knows what the data is. Replace the
+assignment to `SF.SCHOOLS` with a `fetch()` that resolves before `render()` is
+first called, keep the object shape, and nothing else needs to change.
+
+## Basemap
+
+Standard OpenStreetMap raster tiles — free, no API key, no sign-up. The tile
+layer is desaturated slightly in CSS (`.leaflet-tile-pane`) so the school
+markers stay the loudest thing on screen. Note that OSM's public tile server is
+fine for a demo but has a usage policy; a real deployment should use a tile
+provider with a proper plan.
+
+## Out of scope
+
+No authentication, backend, admin tooling, data submission, reviews or user
+accounts — see the implementation brief.
