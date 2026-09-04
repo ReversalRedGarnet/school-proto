@@ -50,28 +50,21 @@ SF.panel.render = function (state) {
         '<button type="button" class="text-close" data-close-panel>Close <span aria-hidden="true">&times;</span></button>' +
       '</div>' +
 
-      '<div class="detail-banner">' +
-        '<span class="banner-avatar">' + esc(SF.format.initials(school.name)) + '</span>' +
-        '<span class="banner-type">' + esc(school.schoolType) + ' school</span>' +
-      '</div>' +
-
       '<header class="detail-head">' +
         '<h2 id="detail-name">' + esc(school.name) + '</h2>' +
         '<p class="detail-place">' +
           esc(school.town) + ', ' + esc(school.island) + ' &middot; ' + esc(school.province) + ' Province' +
           (distanceKm !== null ? '<span class="detail-distance">' + SF.geo.formatDistance(distanceKm) + ' away</span>' : '') +
         '</p>' +
-        '<ul class="tag-row">' +
-          school.educationLevels.map(function (l) { return '<li class="tag">' + esc(SF.label(l)) + '</li>'; }).join('') +
-          '<li class="tag tag-quiet">' + esc(SF.label(school.denomination)) + '</li>' +
-        '</ul>' +
+        '<p class="detail-kind">' + esc(school.educationLevels.map(SF.label).join(', ')) +
+          ' &middot; ' + esc(school.schoolType) + ' school &middot; ' + esc(SF.label(school.denomination)) + '</p>' +
       '</header>' +
 
       '<div class="detail-actions">' +
         '<a class="btn btn-primary" href="' + esc(directionsUrl) + '" target="_blank" rel="noopener">' +
           iconPin() + 'Get directions</a>' +
-        '<a class="btn btn-quiet" href="' + esc(telHref) + '">' + iconPhone() + 'Call</a>' +
-        '<a class="btn btn-quiet" href="' + esc(school.website) + '" target="_blank" rel="noopener">' + iconGlobe() + 'Website</a>' +
+        '<a class="btn btn-secondary" href="' + esc(telHref) + '">' + iconPhone() + 'Call</a>' +
+        '<a class="btn btn-secondary" href="' + esc(school.website) + '" target="_blank" rel="noopener">' + iconGlobe() + 'Website</a>' +
       '</div>' +
 
       '<p class="detail-desc">' + esc(school.description) + '</p>' +

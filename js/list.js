@@ -63,16 +63,16 @@ SF.list.init = function () {
   chipsEl = document.getElementById('active-chips');
 
   listEl.addEventListener('click', function (e) {
-    var card = e.target.closest('.card');
-    if (card) SF.select(card.getAttribute('data-id'));
+    var row = e.target.closest('.result');
+    if (row) SF.select(row.getAttribute('data-id'));
   });
 
   listEl.addEventListener('keydown', function (e) {
     if (e.key !== 'Enter' && e.key !== ' ') return;
-    var card = e.target.closest('.card');
-    if (!card) return;
+    var row = e.target.closest('.result');
+    if (!row) return;
     e.preventDefault();
-    SF.select(card.getAttribute('data-id'));
+    SF.select(row.getAttribute('data-id'));
   });
 
   /* Removable filter chips above the results. */
@@ -113,7 +113,7 @@ SF.list.render = function (results, state) {
       '<div class="empty">' +
         '<p class="empty-title">No schools match these filters</p>' +
         '<p class="empty-body">Try taking off a filter, raising the fee limit, or searching for a province such as “Malaita”.</p>' +
-        '<button type="button" class="btn btn-primary btn-lg" id="empty-clear">Start again</button>' +
+        '<button type="button" class="btn btn-primary" id="empty-clear">Start again</button>' +
       '</div>';
     return;
   }
@@ -126,34 +126,40 @@ SF.list.render = function (results, state) {
 /** Scroll the selected card into view without yanking the page around. */
 SF.list.revealSelected = function (id) {
   if (!id || !listEl) return;
-  var el = listEl.querySelector('.card[data-id="' + id + '"]');
+  var el = listEl.querySelector('.result[data-id="' + id + '"]');
   if (el && el.scrollIntoView) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 };
 
 function card(school, isSelected) {
   var esc = SF.format.esc;
-  var distance = typeof school.distanceKm === 'number'
-    ? '<span class="card-distance">' + SF.geo.formatDistance(school.distanceKm) + '</span>'
-    : '';
 
-  var levels = school.educationLevels.map(function (l) {
-    return '<li class="tag">' + esc(SF.label(l)) + '</li>';
-  }).join('');
+  /* A directory row, not a card: label/value pairs, dense and scannable.
+   * Everything a parent screens on before opening the full record. */
+  var place = school.island === school.province
+    ? school.town
+    : school.town + ', ' + school.island;
+
+  var rows = [
+    ['Location',  esc(place)],
+    ['Province',  esc(school.province)],
+    ['Level',     esc(school.educationLevels.map(SF.label).join(', '))],
+    ['Run by',    esc(SF.label(school.denomination))],
+    ['Attendance', esc(school.boarding === 'Both' ? 'Day and boarding' : school.boarding + ' only')],
+    ['Yearly fees', SF.format.feesHtml(school, ' ' + school.currency)]
+  ];
+
+  if (typeof school.distanceKm === 'number') {
+    rows.splice(2, 0, ['Distance', esc(SF.geo.formatDistance(school.distanceKm)) + ' away']);
+  }
 
   return '' +
-    '<article class="card' + (isSelected ? ' is-selected' : '') + '" data-id="' + esc(school.id) + '"' +
+    '<article class="result' + (isSelected ? ' is-selected' : '') + '" data-id="' + esc(school.id) + '"' +
       ' role="button" tabindex="0" aria-pressed="' + (isSelected ? 'true' : 'false') + '">' +
-      '<div class="card-head">' +
-        '<span class="avatar" aria-hidden="true">' + esc(SF.format.initials(school.name)) + '</span>' +
-        '<div class="card-heading">' +
-          '<h3 class="card-name">' + esc(school.name) + '</h3>' +
-          '<p class="card-place">' + esc(SF.format.place(school)) + '</p>' +
-        '</div>' +
-        distance +
-      '</div>' +
-      '<ul class="tag-row">' + levels + '</ul>' +
-      '<div class="card-foot">' +
-        '<span class="card-fee">' + SF.format.feesHtml(school, ' a year') + '</span>' +
-      '</div>' +
+      '<h3 class="result-name">' + esc(school.name) + '</h3>' +
+      '<dl class="result-facts">' +
+        rows.map(function (r) {
+          return '<div class="rf"><dt>' + r[0] + '</dt><dd>' + r[1] + '</dd></div>';
+        }).join('') +
+      '</dl>' +
     '</article>';
 }

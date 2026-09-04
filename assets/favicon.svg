@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="SchoolFinder SI">
   <title>SchoolFinder SI</title>
-  <!-- Solomon Islands flag colours: blue #0051BA, yellow #FCD116, white -->
-  <rect width="32" height="32" rx="7" fill="#0051BA"/>
+  <!-- Institutional navy #06337C, matching the MEHRD / SIG reference sites -->
+  <rect width="32" height="32" fill="#06337C"/>
   <path d="M16 7 5 12.5l11 5.5 9-4.5V21h2v-8.5z" fill="#ffffff"/>
-  <path d="M9 16v5c0 2 3.2 3.6 7 3.6s7-1.6 7-3.6v-5l-7 3.5z" fill="#FCD116"/>
+  <path d="M9 16v5c0 2 3.2 3.6 7 3.6s7-1.6 7-3.6v-5l-7 3.5z" fill="#C8A415"/>
 </svg>

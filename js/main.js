@@ -99,6 +99,15 @@ function wireToolbar() {
     search.focus();
   });
 
+  /* The list already filters as you type; the Search button commits the
+   * current text at once and drops the on-screen keyboard on a phone. */
+  document.getElementById('search-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    clearTimeout(timer);
+    SF.setState({ query: search.value });
+    search.blur();
+  });
+
   document.getElementById('sort-select').addEventListener('change', function (e) {
     SF.setState({ sortBy: e.target.value });
   });
@@ -167,6 +176,8 @@ function resetEverything() {
 
 function wireDrawer() {
   document.getElementById('clear-filters').addEventListener('click', resetEverything);
+  /* Clear inside the drawer leaves the drawer open, the way a search form does. */
+  document.getElementById('drawer-clear').addEventListener('click', resetEverything);
   document.getElementById('drawer-close').addEventListener('click', closeDrawer);
   document.getElementById('drawer-apply').addEventListener('click', closeDrawer);
   document.getElementById('scrim').addEventListener('click', closeDrawer);

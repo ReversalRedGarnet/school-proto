@@ -285,7 +285,7 @@ function distanceSection() {
     '<label class="sr-only" for="distance-select">Maximum distance</label>' +
     '<select class="select select-block" id="distance-select" data-filter="maxDistanceKm" disabled>' + opts + '</select>' +
     '<p class="field-hint" id="geo-status"></p>' +
-    '<button type="button" class="btn btn-quiet btn-block" id="geo-request">Use my location</button>';
+    '<button type="button" class="btn btn-secondary btn-block" id="geo-request">Use my location</button>';
 
   return section('maxDistanceKm', 'How far from me', body, false);
 }

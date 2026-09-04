@@ -71,17 +71,24 @@ these"). Option counts beside each filter are live facet counts.
 
 ## Design notes
 
-**Palette** is the Solomon Islands flag. Blue `#0051BA` carries the brand and
-every primary action (7.3:1 on white). Green `#215B33` is the secondary accent —
-your location on the map, "Free" fees, the location-on state (8.1:1). Yellow
-`#FCD116` is used only as a thin stripe or a small fill behind dark text: it
-measures **1.47:1 against white**, so it can never carry text on a light
-background and never serves as a focus ring there. Focus rings are blue on
-light surfaces and switch to yellow over the blue header and banner.
+**Visual reference** is the live Solomon Islands Government services portal
+(solomons.gov.sb) and the MEHRD site (mehrd.gov.sb), inspected directly rather
+than approximated. Both are Arial / Open Sans over a light grey page, navy nav
+bar, solid navy section header bars, green page headings, borders instead of
+shadows, and square corners almost everywhere — MEHRD renders `border-radius:
+0` on 140 of 152 elements, SIG on 683 of 701. This stylesheet follows that
+idiom: no gradients, no shadows except on the drawer and modal overlays, and
+`border-radius` is 0 throughout.
 
-**Filters** live in one overlay drawer at every screen size rather than an
-always-open rail, so the default view is a search box, a list and a map. What
-is currently applied stays visible as removable chips above the results.
+**Palette** (all text combinations meet WCAG AA): navy `#06337C` for the nav
+bar, section bars and primary buttons (11.9:1 on white); `#1257A0` for links
+(7.3:1); green `#1F6B2E` for page headings, as on both reference sites
+(6.6:1); red `#A5232B` for the prototype notice (7.3:1); gold `#C8A415` is
+decorative only — at 2.9:1 it never carries text.
+
+**The masthead deliberately does not use the national coat of arms.** It
+carries a neutral service mark instead. The real crest should only be added
+with MEHRD's authorisation.
 
 **The map is locked to Solomon Islands.** `maxBounds` plus
 `maxBoundsViscosity: 1.0` stop panning dead at the country's edge, and the
