@@ -15,8 +15,13 @@ A searchable directory and interactive map of schools across Solomon Islands.
 
 There is no build step, no bundler and no server-side code.
 
-- **GitHub Pages:** push the repository and enable Pages on the branch root. It
-  works as-is. All paths are relative.
+- **GitHub Pages:** push the repository and enable Pages on the branch root
+  (Settings → Pages → Deploy from a branch → `main` / `/ (root)`). It works
+  as-is; `.nojekyll` keeps Pages from running the files through Jekyll.
+  Every path in the site is relative, with one deliberate exception: the
+  `og:url` / `og:image` link-preview tags in `index.html` are absolute, because
+  scrapers require it. **Update those two URLs if the repo is renamed or moves
+  to a custom domain.**
 - **Locally:** open `index.html` directly in a browser, or serve the folder
   (`python3 -m http.server`). A local server is recommended, because browser
   geolocation only works on `https://` or `localhost`.
