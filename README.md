@@ -96,6 +96,28 @@ zoom floor is recalculated from the container size on every resize, so zooming
 all the way out lands exactly on the whole-country view and no further. See the
 bounds constants at the top of `js/map.js`.
 
+## Secondary levels, forms and streams
+
+Secondary is modelled the way the national exams group it, not as one flat
+bucket. Each secondary record carries:
+
+```js
+formGroups: ['Form 1-3', 'Form 4-5', 'Form 6', 'Form 7'],   // subset
+streams: { form6: ['Science', 'Arts'], form7: ['Foundation Science'] }
+```
+
+`Form 1-3` is Year 7-9, `Form 4-5` Year 10-11, `Form 6` Year 12, `Form 7`
+Year 13. `educationLevels` keeps its four broad values so non-secondary
+records are unchanged; the school-level *filter* swaps the flat 'Secondary'
+option for the four form groupings (`SF.SCHOOL_LEVEL_OPTIONS`). Records that
+stop before secondary carry neither field.
+
+Streams only exist at Form 6 and Form 7, and their pickers only appear once
+the matching form is selected. Selecting any form group replaces the subjects
+picker with the streams picker entirely. Filters the user can no longer see
+are cleared rather than left silently applied — see `SF.normalizeFilters()`
+in `js/state.js`.
+
 ## Swapping the mock data for an API
 
 `js/data/schools.js` is the only file that knows what the data is. Replace the

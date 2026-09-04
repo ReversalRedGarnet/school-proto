@@ -9,7 +9,7 @@
 window.SF = window.SF || {};
 SF.filterPanel = {};
 
-var root, subjectSearch;
+var root;
 
 var DISTANCE_OPTIONS = [5, 10, 25, 50, 100, 250];
 var FEE_CEILING = 8500;   // a little above the most expensive school in the set
@@ -18,9 +18,10 @@ var FEE_STEP = 250;
 SF.filterPanel.init = function () {
   root = document.getElementById('filter-controls');
   root.innerHTML = [
-    checkboxSection('levels', 'School level', SF.EDUCATION_LEVELS, true),
+    schoolLevelSection(),
     checkboxSection('provinces', 'Province', SF.PROVINCES, true),
     subjectsSection(),
+    streamsSection(),
     checkboxSection('denominations', 'Who runs the school', SF.DENOMINATIONS, false),
     boardingSection(),
     yearLevelSection(),
@@ -28,7 +29,6 @@ SF.filterPanel.init = function () {
     distanceSection()
   ].join('');
 
-  subjectSearch = root.querySelector('#subject-search');
 
   /* One delegated listener per input type, rather than dozens of handlers. */
   root.addEventListener('change', onChange);
@@ -80,6 +80,7 @@ function onClick(e) {
 }
 
 function applySubjectSearch(term) {
+  if (!root.querySelector('#subject-empty')) return;
   var q = term.trim().toLowerCase();
   var anyVisible = false;
 
@@ -112,8 +113,23 @@ SF.filterPanel.sync = function (state) {
     }
   });
 
+  /* Streams supersede subjects for any secondary selection. */
+  var secondary = SF.hasFormGroupSelected();
+  root.querySelector('[data-section="subjects"]').hidden = secondary;
+  root.querySelector('[data-section="streams"]').hidden = !secondary;
+
+  if (secondary) {
+    var shown = 0;
+    [['form6Streams', 'Form 6'], ['form7Streams', 'Form 7']].forEach(function (pair) {
+      var on = f.levels.indexOf(pair[1]) !== -1;
+      root.querySelector('[data-stream-block="' + pair[0] + '"]').hidden = !on;
+      if (on) shown++;
+    });
+    root.querySelector('#stream-none').hidden = shown > 0;
+  }
+
   /* Facet counts */
-  ['levels', 'provinces', 'denominations', 'subjects'].forEach(function (key) {
+  ['levels', 'provinces', 'denominations', 'subjects', 'form6Streams', 'form7Streams'].forEach(function (key) {
     var counts = SF.filters.facetCounts(state, key);
     root.querySelectorAll('input[data-filter="' + key + '"]').forEach(function (input) {
       var n = counts[input.value] || 0;
@@ -166,6 +182,7 @@ function syncBadges(state) {
   var f = state.filters;
   var counts = {
     levels: f.levels.length,
+    streams: f.form6Streams.length + f.form7Streams.length,
     provinces: f.provinces.length,
     subjects: f.subjects.length,
     denominations: f.denominations.length,
@@ -216,13 +233,41 @@ function checkboxSection(key, title, values, open) {
   return section(key, title, '<div class="check-list">' + items + '</div>', open);
 }
 
-function checkItem(key, value) {
+function checkItem(key, value, extraClass) {
   var text = SF.label(value);
-  return '<label class="check" data-search="' + esc((value + ' ' + text).toLowerCase()) + '">' +
+  return '<label class="check ' + (extraClass || '') + '" data-search="' + esc((value + ' ' + text).toLowerCase()) + '">' +
     '<input type="checkbox" data-filter="' + key + '" value="' + esc(value) + '">' +
     '<span class="check-box" aria-hidden="true"></span>' +
     '<span class="check-text">' + esc(text) + '</span>' +
     '<span class="check-count">0</span></label>';
+}
+
+/* School level: the non-secondary levels plus the four national-exam form
+ * groupings, all writing to the one `levels` filter. */
+function schoolLevelSection() {
+  var items = SF.SCHOOL_LEVEL_OPTIONS.map(function (o) {
+    return checkItem('levels', o.value, o.kind === 'form' ? 'is-form' : '');
+  }).join('');
+  return section('levels', 'School level',
+    '<div class="check-list">' + items + '</div>' +
+    '<p class="field-hint">Secondary is grouped the way the national exams group it.</p>', true);
+}
+
+/* Streams replace the subjects picker as soon as a form grouping is chosen.
+ * Only the blocks for the selected forms are shown; sync() handles that. */
+function streamsSection() {
+  var block = function (key, title, values) {
+    return '<div class="stream-block" data-stream-block="' + key + '" hidden>' +
+      '<p class="stream-title">' + title + '</p>' +
+      values.map(function (v) { return checkItem(key, v); }).join('') +
+      '</div>';
+  };
+  var body =
+    block('form6Streams', 'Form 6 streams', SF.FORM6_STREAMS) +
+    block('form7Streams', 'Form 7 streams', SF.FORM7_STREAMS) +
+    '<p class="field-hint" id="stream-none">Streams are set at Form 6 and Form 7. ' +
+      'Select one of those form levels above to choose a stream.</p>';
+  return section('streams', 'Available streams', body, true);
 }
 
 function subjectsSection() {
@@ -233,15 +278,21 @@ function subjectsSection() {
       '</div>';
   }).join('');
 
+  var total = SF.SUBJECT_GROUPS.reduce(function (n, g) { return n + g.subjects.length; }, 0);
+  var searchBox = total > 8
+    ? '<label class="sr-only" for="subject-search">Search subjects</label>' +
+      '<input type="search" id="subject-search" class="mini-search" placeholder="Search subjects…" autocomplete="off">'
+    : '';
+
   var body =
     '<div class="subject-picker">' +
       '<div id="subject-chips" class="chip-row chip-row-tight" hidden></div>' +
-      '<label class="sr-only" for="subject-search">Search subjects</label>' +
-      '<input type="search" id="subject-search" class="mini-search" placeholder="Search subjects…" autocomplete="off">' +
+      searchBox +
       '<div class="subject-scroll">' + groups +
         '<p class="subject-empty" id="subject-empty" hidden>No subjects match that search.</p>' +
       '</div>' +
-      '<p class="field-hint">Only shows schools that teach <strong>every</strong> subject you tick.</p>' +
+      '<p class="field-hint">IT is the only subject confirmed as a consistent offering, ' +
+        'so it is the only one that can be filtered on for now.</p>' +
     '</div>';
 
   return section('subjects', 'Subjects taught', body, true);

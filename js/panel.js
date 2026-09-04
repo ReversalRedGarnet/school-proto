@@ -56,8 +56,11 @@ SF.panel.render = function (state) {
           esc(school.town) + ', ' + esc(school.island) + ' &middot; ' + esc(school.province) + ' Province' +
           (distanceKm !== null ? '<span class="detail-distance">' + SF.geo.formatDistance(distanceKm) + ' away</span>' : '') +
         '</p>' +
-        '<p class="detail-kind">' + esc(school.educationLevels.map(SF.label).join(', ')) +
-          ' &middot; ' + esc(school.schoolType) + ' school &middot; ' + esc(SF.label(school.denomination)) + '</p>' +
+        /* 'Other' covers government, community and private schools, so
+         * repeating it after the school type would say nothing. */
+        '<p class="detail-kind">' + esc(SF.format.levels(school)) +
+          ' &middot; ' + esc(school.schoolType) + ' school' +
+          (school.denomination === 'Other' ? '' : ' &middot; ' + esc(school.denomination)) + '</p>' +
       '</header>' +
 
       '<div class="detail-actions">' +
@@ -72,8 +75,10 @@ SF.panel.render = function (state) {
       '<section class="detail-section">' +
         '<h3>At a glance</h3>' +
         '<dl class="facts">' +
-          fact('School level', school.educationLevels.map(SF.label).join(', ')) +
+          fact('School level', SF.format.levels(school)) +
           fact('Year groups', SF.format.years(school)) +
+          streamFact('Form 6 streams', school, 'form6') +
+          streamFact('Form 7 streams', school, 'form7') +
           fact('Boarding or day', school.boarding === 'Both' ? 'Day and boarding' : school.boarding + ' only') +
           fact('Yearly fees', SF.format.feesHtml(school, ' ' + school.currency)) +
           fact('Run by', SF.label(school.denomination)) +
@@ -108,6 +113,13 @@ SF.panel.render = function (state) {
 
 function fact(term, value) {
   return '<div class="fact"><dt>' + term + '</dt><dd>' + value + '</dd></div>';
+}
+
+/* Only shown when the school actually offers that form. */
+function streamFact(term, school, key) {
+  var list = (school.streams && school.streams[key]) || [];
+  if (!list.length) return '';
+  return fact(term, list.map(SF.label).join(', '));
 }
 
 /* Small inline icons — kept here so the panel has no image dependencies. */

@@ -16,7 +16,10 @@ SF.state = {
   filters: {
     provinces:     [],   // string[]
     denominations: [],   // string[]
-    levels:        [],   // string[] — education levels
+    levels:        [],   // string[] — school levels AND form groups (see
+                         //            SF.SCHOOL_LEVEL_OPTIONS); one control
+    form6Streams:  [],   // string[] — only meaningful when 'Form 6' is picked
+    form7Streams:  [],   // string[] — only meaningful when 'Form 7' is picked
     subjects:      [],   // string[]
     boarding:      '',   // '' | 'Day' | 'Boarding' | 'Both'
     yearLevel:     null, // number | null — school must span this year
@@ -62,7 +65,32 @@ SF.setState = function (patch) {
     delete patch.filters;
   }
   Object.assign(SF.state, patch);
+  SF.normalizeFilters();
   SF.notify();
+};
+
+/**
+ * Keep hidden controls from silently constraining the results.
+ *
+ * The stream pickers only appear once their form group is selected, and the
+ * subjects picker is replaced by streams as soon as any form group is
+ * selected. A filter the user can no longer see must not still be filtering,
+ * so drop those values when their control goes away.
+ */
+SF.normalizeFilters = function () {
+  var f = SF.state.filters;
+
+  if (f.levels.indexOf('Form 6') === -1 && f.form6Streams.length) f.form6Streams = [];
+  if (f.levels.indexOf('Form 7') === -1 && f.form7Streams.length) f.form7Streams = [];
+
+  if (SF.hasFormGroupSelected() && f.subjects.length) f.subjects = [];
+};
+
+/** True when the school-level filter has any secondary form group selected. */
+SF.hasFormGroupSelected = function () {
+  return SF.state.filters.levels.some(function (v) {
+    return SF.FORM_GROUPS.indexOf(v) !== -1;
+  });
 };
 
 /** Add/remove one value in an array-valued filter (checkbox behaviour). */
@@ -98,6 +126,7 @@ SF.clearSelection = function () {
 SF.activeFilterCount = function () {
   var f = SF.state.filters, n = 0;
   n += f.provinces.length + f.denominations.length + f.levels.length + f.subjects.length;
+  n += f.form6Streams.length + f.form7Streams.length;
   if (f.boarding) n++;
   if (f.yearLevel !== null) n++;
   if (f.feeMax !== null) n++;

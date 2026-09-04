@@ -337,6 +337,14 @@ body.filters-open .filters-rail { transform: translateX(0); }
 .check-count { flex: none; font-size: .8rem; color: var(--mute); font-variant-numeric: tabular-nums; }
 .check.is-empty { color: var(--mute); }
 
+.stream-block + .stream-block { margin-top: .6rem; }
+.stream-title {
+  font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
+  color: var(--mute); padding-bottom: .15rem; margin-bottom: .15rem;
+  border-bottom: 1px solid var(--rule-soft);
+}
+.check.is-form .check-text { padding-left: .9rem; }
+
 .field-hint { font-size: .78rem; color: var(--mute); margin-top: .4rem; line-height: 1.4; }
 
 .segmented { display: flex; }

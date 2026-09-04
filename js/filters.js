@@ -58,9 +58,24 @@ var predicates = {
   denominations: function (school, values) {
     return values.length === 0 || values.indexOf(school.denomination) !== -1;
   },
+  /* One control, two fields: 'Early Childhood' / 'Primary' /
+   * 'Tertiary/Vocational' test educationLevels, while the four form groupings
+   * test formGroups. Selecting several widens the results, as elsewhere. */
   levels: function (school, values) {
     return values.length === 0 || values.some(function (v) {
-      return school.educationLevels.indexOf(v) !== -1;
+      return levelKind(v) === 'form'
+        ? formGroupsOf(school).indexOf(v) !== -1
+        : school.educationLevels.indexOf(v) !== -1;
+    });
+  },
+  form6Streams: function (school, values) {
+    return values.length === 0 || values.some(function (v) {
+      return streamsOf(school).form6.indexOf(v) !== -1;
+    });
+  },
+  form7Streams: function (school, values) {
+    return values.length === 0 || values.some(function (v) {
+      return streamsOf(school).form7.indexOf(v) !== -1;
     });
   },
   /* Subjects are AND: "must teach all of the subjects I picked". */
@@ -87,6 +102,22 @@ var predicates = {
   }
 };
 
+/* Records that stop before secondary carry neither field. */
+function formGroupsOf(school) { return school.formGroups || []; }
+function streamsOf(school) {
+  var s = school.streams;
+  return { form6: (s && s.form6) || [], form7: (s && s.form7) || [] };
+}
+
+var LEVEL_KIND = null;
+function levelKind(value) {
+  if (!LEVEL_KIND) {
+    LEVEL_KIND = {};
+    SF.SCHOOL_LEVEL_OPTIONS.forEach(function (o) { LEVEL_KIND[o.value] = o.kind; });
+  }
+  return LEVEL_KIND[value];
+}
+
 /* --- Pipeline ------------------------------------------------------------- */
 
 /**
@@ -110,6 +141,8 @@ SF.filters.applyFilters = function (schools, state) {
       predicates.provinces(school, f.provinces) &&
       predicates.denominations(school, f.denominations) &&
       predicates.levels(school, f.levels) &&
+      predicates.form6Streams(school, f.form6Streams) &&
+      predicates.form7Streams(school, f.form7Streams) &&
       predicates.subjects(school, f.subjects) &&
       predicates.boarding(school, f.boarding) &&
       predicates.yearLevel(school, f.yearLevel) &&
@@ -155,7 +188,7 @@ SF.filters.getResults = function (state) {
 SF.filters.activeChips = function (state) {
   var f = state.filters, chips = [];
 
-  ['provinces', 'denominations', 'levels', 'subjects'].forEach(function (key) {
+  ['provinces', 'denominations', 'levels', 'form6Streams', 'form7Streams', 'subjects'].forEach(function (key) {
     f[key].forEach(function (v) { chips.push({ key: key, value: v, label: SF.label(v) }); });
   });
   if (f.boarding) chips.push({ key: 'boarding', value: '', label: f.boarding === 'Day' ? 'Day school' : 'Boarding' });
@@ -193,7 +226,12 @@ function valuesFor(school, key) {
   switch (key) {
     case 'provinces':     return [school.province];
     case 'denominations': return [school.denomination];
-    case 'levels':        return school.educationLevels;
+    /* 'Secondary' is not an option in the filter — its form groups are. */
+    case 'levels':        return school.educationLevels
+                                   .filter(function (l) { return l !== 'Secondary'; })
+                                   .concat(formGroupsOf(school));
+    case 'form6Streams':  return streamsOf(school).form6;
+    case 'form7Streams':  return streamsOf(school).form7;
     case 'subjects':      return school.subjects;
     default:              return [];
   }

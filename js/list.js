@@ -30,6 +30,23 @@ SF.format = {
     var y = school.yearLevels;
     return y.min === y.max ? 'Year ' + y.min : 'Year ' + y.min + ' to Year ' + y.max;
   },
+  /* Show the form groupings rather than the flat word "Secondary", in the
+   * order a reader expects: early years, primary, forms, then post-school. */
+  levels: function (school) {
+    var has = function (l) { return school.educationLevels.indexOf(l) !== -1; };
+    var out = [];
+    if (has('Early Childhood')) out.push('Early Childhood');
+    if (has('Primary')) out.push('Primary');
+    out = out.concat(school.formGroups || []);
+    if (has('Tertiary/Vocational')) out.push('Tertiary/Vocational');
+    return out.map(SF.label).join(', ');
+  },
+  /* denomination is one of five values, and 'Other' covers government,
+   * community and private schools alike — so for those show what actually
+   * runs the school. The full pair is spelled out in the detail panel. */
+  operator: function (school) {
+    return school.denomination === 'Other' ? school.schoolType : school.denomination;
+  },
   place: function (school) {
     return school.town === school.province
       ? school.town
@@ -142,8 +159,8 @@ function card(school, isSelected) {
   var rows = [
     ['Location',  esc(place)],
     ['Province',  esc(school.province)],
-    ['Level',     esc(school.educationLevels.map(SF.label).join(', '))],
-    ['Run by',    esc(SF.label(school.denomination))],
+    ['Level',     esc(SF.format.levels(school))],
+    ['Run by',    esc(SF.format.operator(school))],
     ['Attendance', esc(school.boarding === 'Both' ? 'Day and boarding' : school.boarding + ' only')],
     ['Yearly fees', SF.format.feesHtml(school, ' ' + school.currency)]
   ];
