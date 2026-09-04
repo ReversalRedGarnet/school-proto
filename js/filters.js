@@ -156,9 +156,9 @@ SF.filters.activeChips = function (state) {
   var f = state.filters, chips = [];
 
   ['provinces', 'denominations', 'levels', 'subjects'].forEach(function (key) {
-    f[key].forEach(function (v) { chips.push({ key: key, value: v, label: v }); });
+    f[key].forEach(function (v) { chips.push({ key: key, value: v, label: SF.label(v) }); });
   });
-  if (f.boarding) chips.push({ key: 'boarding', value: '', label: f.boarding + ' places' });
+  if (f.boarding) chips.push({ key: 'boarding', value: '', label: f.boarding === 'Day' ? 'Day school' : 'Boarding' });
   if (f.yearLevel !== null) chips.push({ key: 'yearLevel', value: null, label: 'Year ' + f.yearLevel });
   if (f.feeMax !== null) chips.push({ key: 'feeMax', value: null, label: 'Fees up to $' + f.feeMax.toLocaleString('en-US') });
   if (f.maxDistanceKm !== null) chips.push({ key: 'maxDistanceKm', value: null, label: 'Within ' + f.maxDistanceKm + ' km' });

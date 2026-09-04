@@ -42,6 +42,19 @@ SF.EDUCATION_LEVELS = ['Early Childhood', 'Primary', 'Secondary', 'Tertiary/Voca
 
 SF.BOARDING_OPTIONS = ['Day', 'Boarding', 'Both'];
 
+/* Plain-language labels for the general public. The stored values above are
+   what a real API would return and never change; these are display only. */
+SF.DISPLAY_LABELS = {
+  'Tertiary/Vocational': 'Vocational & college',
+  'Government / Non-denominational': 'Government (non-church)',
+  'South Seas Evangelical': 'South Seas Evangelical',
+  'SDA': 'Seventh-day Adventist'
+};
+
+SF.label = function (value) {
+  return SF.DISPLAY_LABELS[value] || value;
+};
+
 /* --- The fictional dataset ------------------------------------------------ */
 SF.SCHOOLS = [
   /* ---- Honiara cluster (dense, so the default map view isn't sparse) ---- */

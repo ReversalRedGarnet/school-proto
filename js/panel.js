@@ -47,10 +47,10 @@ SF.panel.render = function (state) {
         '<button type="button" class="link-btn back-btn" data-close-panel>' +
           '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M10 3 5 8l5 5"/></svg> All results' +
         '</button>' +
-        '<button type="button" class="icon-btn" data-close-panel aria-label="Close school details">&times;</button>' +
+        '<button type="button" class="text-close" data-close-panel>Close <span aria-hidden="true">&times;</span></button>' +
       '</div>' +
 
-      '<div class="detail-banner" data-type="' + esc(school.schoolType) + '">' +
+      '<div class="detail-banner">' +
         '<span class="banner-avatar">' + esc(SF.format.initials(school.name)) + '</span>' +
         '<span class="banner-type">' + esc(school.schoolType) + ' school</span>' +
       '</div>' +
@@ -62,8 +62,8 @@ SF.panel.render = function (state) {
           (distanceKm !== null ? '<span class="detail-distance">' + SF.geo.formatDistance(distanceKm) + ' away</span>' : '') +
         '</p>' +
         '<ul class="tag-row">' +
-          school.educationLevels.map(function (l) { return '<li class="tag">' + esc(l) + '</li>'; }).join('') +
-          '<li class="tag tag-quiet">' + esc(school.denomination) + '</li>' +
+          school.educationLevels.map(function (l) { return '<li class="tag">' + esc(SF.label(l)) + '</li>'; }).join('') +
+          '<li class="tag tag-quiet">' + esc(SF.label(school.denomination)) + '</li>' +
         '</ul>' +
       '</header>' +
 
@@ -77,26 +77,26 @@ SF.panel.render = function (state) {
       '<p class="detail-desc">' + esc(school.description) + '</p>' +
 
       '<section class="detail-section">' +
-        '<h3>Key facts</h3>' +
+        '<h3>At a glance</h3>' +
         '<dl class="facts">' +
-          fact('Education levels', school.educationLevels.join(', ')) +
-          fact('Year levels', SF.format.years(school)) +
-          fact('Attendance', school.boarding === 'Both' ? 'Day &amp; boarding places' : school.boarding + ' only') +
-          fact('Annual fees', SF.format.fees(school)) +
-          fact('Denomination', school.denomination) +
-          fact('School type', school.schoolType) +
+          fact('School level', school.educationLevels.map(SF.label).join(', ')) +
+          fact('Year groups', SF.format.years(school)) +
+          fact('Boarding or day', school.boarding === 'Both' ? 'Day and boarding' : school.boarding + ' only') +
+          fact('Yearly fees', SF.format.feesHtml(school, ' ' + school.currency)) +
+          fact('Run by', SF.label(school.denomination)) +
+          fact('Type of school', school.schoolType) +
         '</dl>' +
       '</section>' +
 
       '<section class="detail-section">' +
-        '<h3>Subjects offered <span class="muted-count">' + school.subjects.length + '</span></h3>' +
+        '<h3>Subjects taught <span class="muted-count">' + school.subjects.length + '</span></h3>' +
         '<ul class="chip-row chip-row-tight">' +
           school.subjects.map(function (s) { return '<li class="chip chip-static">' + esc(s) + '</li>'; }).join('') +
         '</ul>' +
       '</section>' +
 
       '<section class="detail-section">' +
-        '<h3>Contact</h3>' +
+        '<h3>Contact the school</h3>' +
         '<ul class="contact-list">' +
           '<li>' + iconPhone() + '<a href="' + esc(telHref) + '">' + esc(school.phone) + '</a></li>' +
           '<li>' + iconMail() + '<a href="mailto:' + esc(school.email) + '">' + esc(school.email) + '</a></li>' +
@@ -107,7 +107,7 @@ SF.panel.render = function (state) {
       '</section>' +
 
       '<footer class="detail-foot">' +
-        '<p>Details last verified <strong>' + esc(SF.format.date(school.lastVerified)) + '</strong>.</p>' +
+        '<p>These details were last checked on <strong class="verified">' + esc(SF.format.date(school.lastVerified)) + '</strong>.</p>' +
         '<p class="fineprint">Demonstration record — this school is fictional. In a live service this is where a “suggest a correction” link would sit.</p>' +
       '</footer>' +
     '</div>';

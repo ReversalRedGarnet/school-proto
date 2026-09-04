@@ -69,6 +69,26 @@ Filter semantics: filter types combine with AND; multiple values within one
 type combine with OR, except **subjects**, which is AND ("must teach all of
 these"). Option counts beside each filter are live facet counts.
 
+## Design notes
+
+**Palette** is the Solomon Islands flag. Blue `#0051BA` carries the brand and
+every primary action (7.3:1 on white). Green `#215B33` is the secondary accent —
+your location on the map, "Free" fees, the location-on state (8.1:1). Yellow
+`#FCD116` is used only as a thin stripe or a small fill behind dark text: it
+measures **1.47:1 against white**, so it can never carry text on a light
+background and never serves as a focus ring there. Focus rings are blue on
+light surfaces and switch to yellow over the blue header and banner.
+
+**Filters** live in one overlay drawer at every screen size rather than an
+always-open rail, so the default view is a search box, a list and a map. What
+is currently applied stays visible as removable chips above the results.
+
+**The map is locked to Solomon Islands.** `maxBounds` plus
+`maxBoundsViscosity: 1.0` stop panning dead at the country's edge, and the
+zoom floor is recalculated from the container size on every resize, so zooming
+all the way out lands exactly on the whole-country view and no further. See the
+bounds constants at the top of `js/map.js`.
+
 ## Swapping the mock data for an API
 
 `js/data/schools.js` is the only file that knows what the data is. Replace the

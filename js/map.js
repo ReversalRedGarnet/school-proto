@@ -4,40 +4,64 @@
  * The map is a *view* of the same filtered array the list renders. It never
  * filters anything itself; it only draws what it is handed and reports clicks
  * back through SF.select().
+ *
+ * The map is locked to Solomon Islands: you cannot pan away from the country
+ * or zoom out past it. See the bounds constants below.
  * ==========================================================================*/
 
 window.SF = window.SF || {};
 SF.map = {};
 
-/* Solomon Islands, from Choiseul in the north-west to Temotu in the south-east. */
-var SI_BOUNDS = L.latLngBounds([-12.4, 155.2], [-6.2, 167.3]);
+/* The country, snug: every school in js/data/schools.js sits inside this box
+ * (lat -11.63…-6.71, lng 156.40…165.83), with roughly half a degree spare on
+ * each side. This is what the initial view and "Show whole country" fit to. */
+var SI_VIEW_BOUNDS = L.latLngBounds([-12.20, 155.60], [-6.30, 166.60]);
+
+/* The hard pan limit, one degree wider again. Panning stops dead here. */
+var SI_MAX_BOUNDS = L.latLngBounds([-13.20, 154.60], [-5.30, 167.60]);
+
+/* Padding used for both fitting and the min-zoom calculation, so that the
+ * zoomed-all-the-way-out view is exactly the reset view. */
+var FIT_PADDING = [30, 30];
 
 var map, markerLayer, userMarker;
-var pendingFit = null;      // a fit deferred because the container was hidden
 var markers = {};          // school id → L.marker
 var lastSignature = null;  // result-set fingerprint, so we only refit on change
+var pendingFit = null;     // a fit deferred because the container was hidden
 
 SF.map.init = function () {
   map = L.map('map', {
     zoomControl: false,
     attributionControl: true,
-    maxBounds: SI_BOUNDS.pad(1.2),
+    /* Locked to Solomon Islands. Viscosity 1.0 makes the edge a hard stop
+     * rather than an elastic one, and minZoom is recalculated from the
+     * container size in applyMinZoom() so you can never zoom out past the
+     * country itself. */
+    maxBounds: SI_MAX_BOUNDS,
+    maxBoundsViscosity: 1.0,
+    worldCopyJump: false,
     minZoom: 5,
     maxZoom: 17
   });
 
   /* Standard OpenStreetMap raster tiles: free, no API key, no sign-up.
-   * A slight desaturation (see .map-col in styles.css) keeps the basemap
-   * quieter than the school markers sitting on top of it. */
+   * A slight desaturation (see .leaflet-tile-pane in styles.css) keeps the
+   * basemap quieter than the school markers sitting on top of it. */
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    maxZoom: 19
+    maxZoom: 19,
+    noWrap: true
+    /* Deliberately no `bounds:` here. Clipping tiles to SI_MAX_BOUNDS leaves
+     * grey voids whenever the viewport is taller than the box — a portrait
+     * phone at the zoom floor, for instance. Panning is already locked by the
+     * map's maxBounds; the tiles just need to fill the frame. */
   }).addTo(map);
 
   L.control.zoom({ position: 'topright' }).addTo(map);
 
   markerLayer = L.layerGroup().addTo(map);
-  map.fitBounds(SI_BOUNDS, { padding: [24, 24] });
+  applyMinZoom();
+  map.fitBounds(SI_VIEW_BOUNDS, { padding: FIT_PADDING });
 };
 
 SF.map.render = function (results, state) {
@@ -64,7 +88,7 @@ SF.map.focus = function (school) {
 };
 
 SF.map.resetView = function () {
-  if (map) map.fitBounds(SI_BOUNDS, { padding: [24, 24] });
+  if (map) map.fitBounds(SI_VIEW_BOUNDS, { padding: FIT_PADDING });
 };
 
 /** True once the map has a real size — used to decide whether a fit can run. */
@@ -72,12 +96,14 @@ SF.map.isVisible = function () { return !!map && map.getSize().x > 0; };
 
 /**
  * Call after the map container changes size (panel opens, mobile view switch).
- * If a fit was deferred because the map was display:none — which is how it
- * starts on small screens — carry it out now that the container has a size.
+ * Recomputes the zoom floor for the new size, and carries out any fit that was
+ * deferred because the map was display:none — which is how it starts on small
+ * screens.
  */
 SF.map.refresh = function () {
   if (!map) return;
   map.invalidateSize({ animate: false });
+  applyMinZoom();
   if (pendingFit && map.getSize().x > 0) {
     var deferred = pendingFit;
     pendingFit = null;
@@ -87,13 +113,25 @@ SF.map.refresh = function () {
 
 /* --- internals ----------------------------------------------------------- */
 
+/**
+ * The zoom floor is "the whole country just fits", recalculated from the
+ * current container size — a phone in portrait needs a lower floor than a wide
+ * desktop column. Because it uses the same padding as fitBounds, zooming all
+ * the way out lands exactly on the reset view.
+ */
+function applyMinZoom() {
+  if (map.getSize().x === 0) return;   // hidden container measures 0×0
+  var floor = map.getBoundsZoom(SI_VIEW_BOUNDS, false, L.point(FIT_PADDING[0], FIT_PADDING[1]));
+  map.setMinZoom(floor);
+}
+
 function drawMarkers(results) {
   markerLayer.clearLayers();
   markers = {};
 
   results.forEach(function (school) {
     var marker = L.marker([school.latitude, school.longitude], {
-      icon: pinIcon(school, false),
+      icon: pinIcon(false),
       title: school.name,
       alt: school.name,
       riseOnHover: true,
@@ -111,22 +149,20 @@ function drawMarkers(results) {
   });
 }
 
-function pinIcon(school, selected) {
+/* Every school is the same blue; the selected one gets the flag-yellow ring. */
+function pinIcon(selected) {
   return L.divIcon({
     className: '',
-    html: '<span class="pin' + (selected ? ' pin-selected' : '') +
-          '" data-type="' + school.schoolType + '"></span>',
-    iconSize: selected ? [26, 26] : [18, 18],
-    iconAnchor: selected ? [13, 13] : [9, 9]
+    html: '<span class="pin' + (selected ? ' pin-selected' : '') + '"></span>',
+    iconSize: selected ? [26, 26] : [20, 20],
+    iconAnchor: selected ? [13, 13] : [10, 10]
   });
 }
 
 function paintSelection(selectedId) {
   Object.keys(markers).forEach(function (id) {
-    var school = SF.getSchoolById(id);
-    markers[id].setIcon(pinIcon(school, id === selectedId));
-    if (id === selectedId) markers[id].setZIndexOffset(1000);
-    else markers[id].setZIndexOffset(0);
+    markers[id].setIcon(pinIcon(id === selectedId));
+    markers[id].setZIndexOffset(id === selectedId ? 1000 : 0);
   });
 }
 

@@ -14,11 +14,21 @@ SF.format = {
   fees: function (school) {
     if (school.feeMin === 0 && school.feeMax === 0) return 'No fees';
     var lo = school.feeMin === 0 ? 'Free' : '$' + school.feeMin.toLocaleString('en-US');
-    return lo + ' – $' + school.feeMax.toLocaleString('en-US') + ' ' + school.currency;
+    return lo + ' – $' + school.feeMax.toLocaleString('en-US') + ' ' + school.currency + ' a year';
+  },
+  /* Same figures, with "Free" picked out in the flag green. `suffix` is
+   * ' a year' on cards, where nothing else says so, and the currency code in
+   * the detail panel, where the label already reads "Yearly fees". */
+  feesHtml: function (school, suffix) {
+    if (school.feeMin === 0 && school.feeMax === 0) return '<span class="fee-free">No fees</span>';
+    var lo = school.feeMin === 0
+      ? '<span class="fee-free">Free</span>'
+      : '$' + school.feeMin.toLocaleString('en-US');
+    return lo + ' – $' + school.feeMax.toLocaleString('en-US') + (suffix || '');
   },
   years: function (school) {
     var y = school.yearLevels;
-    return y.min === y.max ? 'Year ' + y.min : 'Years ' + y.min + '–' + y.max;
+    return y.min === y.max ? 'Year ' + y.min : 'Year ' + y.min + ' to Year ' + y.max;
   },
   place: function (school) {
     return school.town === school.province
@@ -86,21 +96,24 @@ SF.list.render = function (results, state) {
     : 'of ' + total + ' match your search';
 
   /* Active filter chips */
+  /* Filters live behind a button now, so the chips are the only always-visible
+   * sign of what is applied — and the only always-visible way to undo it. */
   var chips = SF.filters.activeChips(state);
   chipsEl.innerHTML = chips.map(function (c) {
     return '<button type="button" class="chip chip-removable" data-chip-key="' + esc(c.key) +
            '" data-chip-value="' + esc(c.value === null ? '' : c.value) + '">' +
            esc(c.label) + '<span aria-hidden="true">&times;</span>' +
            '<span class="sr-only"> — remove filter</span></button>';
-  }).join('');
+  }).join('') +
+  (chips.length ? '<button type="button" class="link-btn" id="chips-clear">Clear all filters</button>' : '');
   chipsEl.hidden = chips.length === 0;
 
   if (results.length === 0) {
     listEl.innerHTML =
       '<div class="empty">' +
         '<p class="empty-title">No schools match these filters</p>' +
-        '<p class="empty-body">Try removing a filter, widening the fee range, or searching for a province such as “Malaita”.</p>' +
-        '<button type="button" class="btn btn-primary" id="empty-clear">Clear all filters</button>' +
+        '<p class="empty-body">Try taking off a filter, raising the fee limit, or searching for a province such as “Malaita”.</p>' +
+        '<button type="button" class="btn btn-primary btn-lg" id="empty-clear">Start again</button>' +
       '</div>';
     return;
   }
@@ -123,27 +136,24 @@ function card(school, isSelected) {
     ? '<span class="card-distance">' + SF.geo.formatDistance(school.distanceKm) + '</span>'
     : '';
 
-  var tags = school.educationLevels.map(function (l) {
-    return '<li class="tag">' + esc(l) + '</li>';
-  }).join('') +
-  '<li class="tag tag-quiet">' + esc(school.boarding === 'Both' ? 'Day & boarding' : school.boarding) + '</li>';
+  var levels = school.educationLevels.map(function (l) {
+    return '<li class="tag">' + esc(SF.label(l)) + '</li>';
+  }).join('');
 
   return '' +
     '<article class="card' + (isSelected ? ' is-selected' : '') + '" data-id="' + esc(school.id) + '"' +
       ' role="button" tabindex="0" aria-pressed="' + (isSelected ? 'true' : 'false') + '">' +
       '<div class="card-head">' +
-        '<span class="avatar" data-type="' + esc(school.schoolType) + '" aria-hidden="true">' +
-          esc(SF.format.initials(school.name)) + '</span>' +
+        '<span class="avatar" aria-hidden="true">' + esc(SF.format.initials(school.name)) + '</span>' +
         '<div class="card-heading">' +
           '<h3 class="card-name">' + esc(school.name) + '</h3>' +
-          '<p class="card-place">' + esc(SF.format.place(school)) + ' &middot; ' + esc(school.denomination.replace(' / Non-denominational', '')) + '</p>' +
+          '<p class="card-place">' + esc(SF.format.place(school)) + '</p>' +
         '</div>' +
         distance +
       '</div>' +
-      '<ul class="tag-row">' + tags + '</ul>' +
+      '<ul class="tag-row">' + levels + '</ul>' +
       '<div class="card-foot">' +
-        '<span>' + esc(SF.format.years(school)) + '</span>' +
-        '<span class="card-fee">' + esc(SF.format.fees(school)) + '</span>' +
+        '<span class="card-fee">' + SF.format.feesHtml(school, ' a year') + '</span>' +
       '</div>' +
     '</article>';
 }

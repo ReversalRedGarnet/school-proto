@@ -18,10 +18,10 @@ var FEE_STEP = 250;
 SF.filterPanel.init = function () {
   root = document.getElementById('filter-controls');
   root.innerHTML = [
-    checkboxSection('levels', 'Education level', SF.EDUCATION_LEVELS, true),
+    checkboxSection('levels', 'School level', SF.EDUCATION_LEVELS, true),
     checkboxSection('provinces', 'Province', SF.PROVINCES, true),
     subjectsSection(),
-    checkboxSection('denominations', 'Denomination', SF.DENOMINATIONS, false),
+    checkboxSection('denominations', 'Who runs the school', SF.DENOMINATIONS, false),
     boardingSection(),
     yearLevelSection(),
     feeSection(),
@@ -132,8 +132,8 @@ SF.filterPanel.sync = function (state) {
   var fee = root.querySelector('#fee-range');
   fee.value = f.feeMax === null ? FEE_CEILING : f.feeMax;
   root.querySelector('#fee-output').textContent = f.feeMax === null
-    ? 'Any annual fee'
-    : 'Up to $' + f.feeMax.toLocaleString('en-US') + ' SBD / year';
+    ? 'Any fee'
+    : 'Up to $' + f.feeMax.toLocaleString('en-US') + ' a year';
 
   /* Subjects: chips + section state */
   renderSubjectChips(f.subjects);
@@ -154,11 +154,11 @@ SF.filterPanel.sync = function (state) {
 
 function geoMessage(state) {
   switch (state.geoStatus) {
-    case 'granted':     return 'Distances are measured from your current position.';
-    case 'denied':      return 'Location unavailable — distance filtering is turned off.';
-    case 'unavailable': return 'This browser does not support location services.';
-    case 'prompting':   return 'Waiting for your browser’s location permission…';
-    default:            return 'Share your location to filter and sort by distance.';
+    case 'granted':     return 'Distances are measured from where you are now.';
+    case 'denied':      return 'We could not get your location, so this filter is switched off.';
+    case 'unavailable': return 'This browser cannot share your location.';
+    case 'prompting':   return 'Waiting for you to allow location in your browser…';
+    default:            return 'Share your location to see how far away each school is.';
   }
 }
 
@@ -194,7 +194,7 @@ function renderSubjectChips(selected) {
   wrap.hidden = false;
   wrap.innerHTML = selected.map(function (s) {
     return '<button type="button" class="chip chip-removable" data-remove-subject="' + esc(s) + '">' +
-             esc(s) + '<span aria-hidden="true">&times;</span>' +
+             esc(SF.label(s)) + '<span aria-hidden="true">&times;</span>' +
              '<span class="sr-only"> — remove filter</span>' +
            '</button>';
   }).join('') +
@@ -217,10 +217,11 @@ function checkboxSection(key, title, values, open) {
 }
 
 function checkItem(key, value) {
-  return '<label class="check" data-search="' + esc(value.toLowerCase()) + '">' +
+  var text = SF.label(value);
+  return '<label class="check" data-search="' + esc((value + ' ' + text).toLowerCase()) + '">' +
     '<input type="checkbox" data-filter="' + key + '" value="' + esc(value) + '">' +
     '<span class="check-box" aria-hidden="true"></span>' +
-    '<span class="check-text">' + esc(value) + '</span>' +
+    '<span class="check-text">' + esc(text) + '</span>' +
     '<span class="check-count">0</span></label>';
 }
 
@@ -240,30 +241,30 @@ function subjectsSection() {
       '<div class="subject-scroll">' + groups +
         '<p class="subject-empty" id="subject-empty" hidden>No subjects match that search.</p>' +
       '</div>' +
-      '<p class="field-hint">Schools must teach <strong>all</strong> selected subjects.</p>' +
+      '<p class="field-hint">Only shows schools that teach <strong>every</strong> subject you tick.</p>' +
     '</div>';
 
-  return section('subjects', 'Subjects offered', body, true);
+  return section('subjects', 'Subjects taught', body, true);
 }
 
 function boardingSection() {
-  var opts = [['', 'Any'], ['Day', 'Day places'], ['Boarding', 'Boarding places']];
+  var opts = [['', 'Any'], ['Day', 'Day school'], ['Boarding', 'Boarding']];
   var body = '<div class="segmented" role="radiogroup" aria-label="Boarding">' +
     opts.map(function (o, i) {
       return '<label class="seg"><input type="radio" name="boarding" data-filter="boarding" value="' +
         esc(o[0]) + '"' + (i === 0 ? ' checked' : '') + '><span>' + esc(o[1]) + '</span></label>';
     }).join('') + '</div>';
-  return section('boarding', 'Day or boarding', body, false);
+  return section('boarding', 'Boarding or day school', body, false);
 }
 
 function yearLevelSection() {
-  var opts = ['<option value="">Any year level</option>'];
+  var opts = ['<option value="">Any year group</option>'];
   for (var y = 1; y <= 13; y++) opts.push('<option value="' + y + '">Year ' + y + '</option>');
   var body =
-    '<label class="sr-only" for="year-select">Year level</label>' +
+    '<label class="sr-only" for="year-select">Year group</label>' +
     '<select class="select select-block" id="year-select" data-filter="yearLevel">' + opts.join('') + '</select>' +
-    '<p class="field-hint">Shows schools that teach the selected year.</p>';
-  return section('yearLevel', 'Year level', body, false);
+    '<p class="field-hint">Shows schools that teach this year group.</p>';
+  return section('yearLevel', 'Year group', body, false);
 }
 
 function feeSection() {
@@ -271,8 +272,8 @@ function feeSection() {
     '<output class="range-output" id="fee-output" for="fee-range">Any annual fee</output>' +
     '<input type="range" class="range" id="fee-range" min="0" max="' + FEE_CEILING + '" step="' + FEE_STEP + '" value="' + FEE_CEILING + '" aria-label="Maximum annual fee in Solomon Islands dollars">' +
     '<div class="range-scale"><span>Free</span><span>$' + FEE_CEILING.toLocaleString('en-US') + '+</span></div>' +
-    '<p class="field-hint">Matches schools with at least one place at or below this fee.</p>';
-  return section('feeMax', 'Annual fees (SBD)', body, false);
+    '<p class="field-hint">Shows schools where fees start at or below this amount.</p>';
+  return section('feeMax', 'Yearly fees', body, false);
 }
 
 function distanceSection() {
@@ -286,7 +287,7 @@ function distanceSection() {
     '<p class="field-hint" id="geo-status"></p>' +
     '<button type="button" class="btn btn-quiet btn-block" id="geo-request">Use my location</button>';
 
-  return section('maxDistanceKm', 'Distance from me', body, false);
+  return section('maxDistanceKm', 'How far from me', body, false);
 }
 
 function esc(s) {

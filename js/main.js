@@ -50,6 +50,9 @@ function render(state) {
   SF.filterPanel.sync(state);
   syncToolbar(state, results);
 
+  /* "You are here" only belongs in the map key once there is a you to show. */
+  document.getElementById('key-you').hidden = !state.userLocation;
+
   document.body.classList.toggle('filters-open', state.filtersOpen);
   document.body.classList.toggle('view-map', state.mobileView === 'map');
   document.getElementById('scrim').hidden = !state.filtersOpen;
@@ -111,9 +114,12 @@ function wireToolbar() {
 
   document.getElementById('map-reset').addEventListener('click', SF.map.resetView);
 
-  /* Delegated: the empty-state's "clear all" button is re-created each render. */
+  /* Delegated: both of these buttons are re-created on every render. */
   document.getElementById('results-list').addEventListener('click', function (e) {
     if (e.target.closest('#empty-clear')) resetEverything();
+  });
+  document.getElementById('active-chips').addEventListener('click', function (e) {
+    if (e.target.closest('#chips-clear')) resetEverything();
   });
 }
 
@@ -136,16 +142,17 @@ function syncToolbar(state, results) {
   var locateLabel = document.getElementById('locate-label');
   locateBtn.classList.toggle('is-active', granted);
   locateBtn.disabled = state.geoStatus === 'prompting';
+  /* Every control keeps a visible word at every screen size; on a phone the
+   * wording is just shorter so the row still fits without hiding labels. */
+  var narrow = window.matchMedia('(max-width: 859px)').matches;
   var locateText =
-    state.geoStatus === 'prompting' ? 'Locating…' :
-    granted ? 'Location on' :
-    state.geoStatus === 'denied' ? 'Location blocked' :
-    state.geoStatus === 'unavailable' ? 'Location unavailable' :
-    'Use my location';
+    state.geoStatus === 'prompting'   ? 'Locating…' :
+    granted                           ? 'Location on' :
+    state.geoStatus === 'denied'      ? (narrow ? 'No location' : 'Location blocked') :
+    state.geoStatus === 'unavailable' ? (narrow ? 'No location' : 'Location unavailable') :
+                                        (narrow ? 'Near me' : 'Use my location');
   locateLabel.textContent = locateText;
-  /* The label is visually hidden on narrow screens — keep it available here. */
   locateBtn.title = locateText;
-  locateBtn.setAttribute('aria-label', locateText);
 
   document.getElementById('drawer-count').textContent = results.length;
 }
@@ -185,7 +192,12 @@ function wireViewSwitch() {
     });
   });
 
-  window.addEventListener('resize', debounce(SF.map.refresh, 200));
+  /* Re-render on resize as well as resizing the map: some labels are shorter
+   * on narrow screens, and the zoom floor depends on the container size. */
+  window.addEventListener('resize', debounce(function () {
+    SF.map.refresh();
+    SF.notify();
+  }, 200));
 }
 
 /* --- Keyboard ------------------------------------------------------------ */
@@ -204,7 +216,7 @@ function wireGlobalKeys() {
 var INFO = {
   about: {
     title: 'About SchoolFinder SI',
-    body: '<p>SchoolFinder SI is a prototype for a national school directory: one place where families, students and education officers can find every school in Solomon Islands, compare what each one offers, and see where it sits on the map.</p>' +
+    body: '<p>SchoolFinder SI is a prototype for a national school directory: one place where families and students can find every school in Solomon Islands, compare what each one offers, and see where it is on the map.</p>' +
           '<p>This build is a demonstration of the concept only. All 31 school records are fictional, and nothing entered here is stored or sent anywhere.</p>'
   },
   useful: {
@@ -223,11 +235,12 @@ var INFO = {
   },
   help: {
     title: 'Help &amp; FAQ',
-    body: '<ul><li><strong>Search</strong> matches school names, towns, provinces, denominations and subjects at once.</li>' +
-          '<li><strong>Filters combine.</strong> Choosing two provinces widens the results; adding an education level narrows them again.</li>' +
-          '<li><strong>Subjects</strong> are strict — a school must teach every subject you select.</li>' +
-          '<li><strong>Distance</strong> filtering and “Nearest to me” sorting appear once you share your location. Everything else works without it.</li>' +
-          '<li>Selecting a school highlights it in both the list and the map. Press <kbd>Esc</kbd> to deselect.</li></ul>'
+    body: '<ul><li><strong>Start by searching.</strong> The search box looks at school names, towns, provinces and subjects all at once.</li>' +
+          '<li><strong>Use the Filters button</strong> to narrow things down by school level, province, subjects, fees and more.</li>' +
+          '<li><strong>Picking more than one option widens the results.</strong> Choosing both Malaita and Western shows schools in either. Adding a school level narrows them again.</li>' +
+          '<li><strong>Subjects work differently:</strong> a school has to teach every subject you tick.</li>' +
+          '<li><strong>Share your location</strong> to see how far away each school is and to sort by the closest. Everything else works without it.</li>' +
+          '<li>Tap a school in the list or on the map to see its full details. Press <kbd>Esc</kbd> to go back.</li></ul>'
   }
 };
 
